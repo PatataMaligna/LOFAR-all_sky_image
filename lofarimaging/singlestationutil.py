@@ -2,6 +2,7 @@
 
 import os
 import datetime
+import configparser
 from typing import List, Dict, Tuple, Union
 
 import numpy as np
@@ -611,6 +612,7 @@ def make_xst_plots(xst_data: np.ndarray,
                    rcu_mode: int,
                    caltable_dir: str = "./test/CalTables",
                    extent: List[float] = None,
+                   sources: str = None,
                    pixels_per_metre: float = 0.5,
                    sky_vmin: float = None,
                    sky_vmax: float = None,
@@ -681,6 +683,11 @@ def make_xst_plots(xst_data: np.ndarray,
 
     os.makedirs(outputpath, exist_ok=True)
 
+    if sources is None:
+        sources = "sources.ini"
+    config = configparser.ConfigParser()
+    config.read(sources)
+
     fname = f"{obstime:%Y%m%d}_{obstime:%H%M%S}_{station_name}_SB{subband}"
 
     npix_l, npix_m = 131, 131
@@ -713,19 +720,20 @@ def make_xst_plots(xst_data: np.ndarray,
     gcrs_instance = GCRS(obstime = obstime_astropy)
     zenith = AltAz(az=0 * u.deg, alt=90 * u.deg, obstime=obstime_astropy,
                    location=station_earthlocation).transform_to(gcrs_instance)
-
+    
+    print(float(config['Cas A']['RA']) * u.deg, config['Cas A']['RA'])
     # Determine positions of potential sources of strong emission
     marked_bodies = {
-        'Cas A': SkyCoord(ra=350.85 * u.deg, dec=58.815 * u.deg),
-        'Cyg A': SkyCoord(ra=299.86815191 * u.deg, dec=40.73391574 * u.deg),
-        'Per A': SkyCoord(ra=49.95066567*u.deg, dec=41.51169838 * u.deg),
-        'Her A': SkyCoord(ra=252.78343333*u.deg, dec=4.99303056*u.deg),
-        'Cen A': SkyCoord(ra=201.36506288*u.deg, dec=-43.01911267*u.deg),
-        'Vir A': SkyCoord(ra=187.70593076*u.deg, dec=12.39112329*u.deg),
-        '3C295': SkyCoord(ra=212.83527917*u.deg, dec=52.20264444*u.deg),
+        'Cas A': SkyCoord(ra=float(config['Cas A']['RA']) * u.deg, dec=float(config['Cas A']['DEC']) * u.deg),
+        'Cyg A': SkyCoord(ra=float(config['Cyg A']['RA']) * u.deg, dec=float(config['Cyg A']['DEC']) * u.deg),
+        'Per A': SkyCoord(ra=float(config['Per A']['RA']) * u.deg, dec=float(config['Per A']['DEC']) * u.deg),
+        'Her A': SkyCoord(ra=float(config['Her A']['RA']) * u.deg, dec=float(config['Her A']['DEC']) * u.deg),
+        'Cen A': SkyCoord(ra=float(config['Cen A']['RA']) * u.deg, dec=float(config['Cen A']['DEC']) * u.deg),
+        'Vir A': SkyCoord(ra=float(config['Vir A']['RA']) * u.deg, dec=float(config['Vir A']['DEC']) * u.deg),
+        '3C295': SkyCoord(ra=float(config['3C295']['RA']) * u.deg, dec=float(config['3C295']['DEC']) * u.deg),
         'Moon': get_body('moon', time=obstime_astropy),
         'Sun': get_sun(time=obstime_astropy).transform_to(gcrs_instance),
-        '3C196': SkyCoord(ra=123.40023371*u.deg, dec=48.21739888*u.deg),
+        '3C196': SkyCoord(ra=float(config['3C196']['RA']) * u.deg, dec=float(config['3C196']['DEC']) * u.deg),
         # 'J0133-3629': [1.0440, -0.662, -0.225],
         # '3C48': [1.3253, -0.7553, -0.1914, 0.0498],
         # 'For A': [2.218, -0.661],
@@ -759,8 +767,9 @@ def make_xst_plots(xst_data: np.ndarray,
 
     marked_bodies_lmn = {}
     for body_name, body_coord in marked_bodies.items():
-        # print(body_name, body_coord.separation(zenith), body_coord.separation(zenith))
+        print(body_name, body_coord.separation(zenith), body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
         if body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt > 0:
+            print("DentroOOOOO", body_name, body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
             marked_bodies_lmn[body_name] = skycoord_to_lmn(marked_bodies[body_name], zenith)
 
     if subtract is not None:
