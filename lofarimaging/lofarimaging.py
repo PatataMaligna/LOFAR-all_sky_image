@@ -125,10 +125,10 @@ def nearfield_imager(visibilities, baseline_indices, freqs, npix_p, npix_q, exte
         np.add(distances[baseline_indices[vis_chunkstart:vis_chunkend, 0]],
                -distances[baseline_indices[vis_chunkstart:vis_chunkend, 1]], out=bl_diff_chunk)
 
-        # j2pi = 1j * 2 * np.pi
+        j2pi = 1j * 2 * np.pi
         for ifreq, freq in enumerate(freqs):
-            # v = visibilities[vis_chunkstart:vis_chunkend, ifreq][:, None, None]
-            # lamb = SPEED_OF_LIGHT / freq
+            v = visibilities[vis_chunkstart:vis_chunkend, ifreq][:, None, None]
+            lamb = SPEED_OF_LIGHT / freq
 
             # v[:,np.newaxis,np.newaxis]*np.exp(-2j*np.pi*freq/c*groundbase_pixels[:,:,:]/c)
             # groundbase_pixels=nvis x npix x npix

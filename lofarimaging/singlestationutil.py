@@ -19,7 +19,7 @@ from matplotlib.patches import Circle
 import matplotlib.axes as maxes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from astropy.coordinates import SkyCoord, GCRS, EarthLocation, AltAz, get_sun, get_moon
+from astropy.coordinates import SkyCoord, GCRS, EarthLocation, AltAz, get_sun, get_body
 import astropy.units as u
 from astropy.time import Time
 
@@ -609,7 +609,7 @@ def make_xst_plots(xst_data: np.ndarray,
                    obstime: datetime.datetime,
                    subband: int,
                    rcu_mode: int,
-                   caltable_dir: str = "CalTables",
+                   caltable_dir: str = "./test/CalTables",
                    extent: List[float] = None,
                    pixels_per_metre: float = 0.5,
                    sky_vmin: float = None,
@@ -617,7 +617,7 @@ def make_xst_plots(xst_data: np.ndarray,
                    ground_vmin: float = None,
                    ground_vmax: float = None,
                    height: float = 1.5,
-                   map_zoom: int = 19,
+                   map_zoom: int = 18,
                    sky_only: bool = False,
                    opacity: float = 0.6,
                    hdf5_filename: str = None,
@@ -723,9 +723,38 @@ def make_xst_plots(xst_data: np.ndarray,
         'Cen A': SkyCoord(ra=201.36506288*u.deg, dec=-43.01911267*u.deg),
         'Vir A': SkyCoord(ra=187.70593076*u.deg, dec=12.39112329*u.deg),
         '3C295': SkyCoord(ra=212.83527917*u.deg, dec=52.20264444*u.deg),
-        'Moon': get_moon(time=obstime_astropy, location=station_earthlocation).transform_to(gcrs_instance),
+        'Moon': get_body('moon', time=obstime_astropy),
         'Sun': get_sun(time=obstime_astropy).transform_to(gcrs_instance),
-        '3C196': SkyCoord(ra=123.40023371*u.deg, dec=48.21739888*u.deg)
+        '3C196': SkyCoord(ra=123.40023371*u.deg, dec=48.21739888*u.deg),
+        # 'J0133-3629': [1.0440, -0.662, -0.225],
+        # '3C48': [1.3253, -0.7553, -0.1914, 0.0498],
+        # 'For A': [2.218, -0.661],
+        # 'ForA': [2.218, -0.661],
+        # '3C123': [1.8017, -0.7884, -0.1035, -0.0248, 0.0090],
+        # 'J0444-2809': [0.9710, -0.894, -0.118],
+        # '3C138': [1.0088, -0.4981, -0.155, -0.010, 0.022, ],
+        # 'Pic A': [1.9380, -0.7470, -0.074],
+        # 'Tau A': [2.9516, -0.217, -0.047, -0.067],
+        # 'PicA': [1.9380, -0.7470, -0.074],
+        # 'TauA': [2.9516, -0.217, -0.047, -0.067],
+        # '3C147': [1.4516, -0.6961, -0.201, 0.064, -0.046, 0.029],
+        # '3C196': [1.2872, -0.8530, -0.153, -0.0200, 0.0201],
+        # 'Hyd A': [1.7795, -0.9176, -0.084, -0.0139, 0.030],
+        # 'Vir A': [2.4466, -0.8116, -0.048],
+        # 'HydA': [1.7795, -0.9176, -0.084, -0.0139, 0.030],
+        # 'VirA': [2.4466, -0.8116, -0.048],
+        # '3C286': [1.2481, -0.4507, -0.1798, 0.0357],
+        # '3C295': [1.4701, -0.7658, -0.2780, -0.0347, 0.0399],
+        # 'Her A': [1.8298, -1.0247, -0.0951],
+        # 'HerA': [1.8298, -1.0247, -0.0951],
+        # '3C353': [1.8627, -0.6938, -0.100, -0.032],
+        # '3C380': [1.2320, -0.791, 0.095, 0.098, -0.18, -0.16],
+        # 'Cyg A': [3.3498, -1.0022, -0.225, 0.023, 0.043],
+        # 'CygA': [3.3498, -1.0022, -0.225, 0.023, 0.043],
+        # '3C444': [3.3498, -1.0022, -0.22, 0.023, 0.043],
+        # 'Cas A': [3.3584, -0.7518, -0.035, -0.071],
+        # 'CasA': [3.3584, -0.7518, -0.035, -0.071],
+        # 'casa': [3.3584, -0.7518, -0.035, -0.071]
     }
 
     marked_bodies_lmn = {}
