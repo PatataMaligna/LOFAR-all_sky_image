@@ -520,8 +520,9 @@ def make_sky_plot(image: np.ndarray, marked_bodies_lmn: Dict[str, Tuple[float, f
     ax.set_xlabel('$ℓ$', fontsize=14)
     ax.set_ylabel('$m$', fontsize=14)
 
-    ax.text(0.5, 1.05, title, fontsize=17, ha='center', va='bottom', transform=ax.transAxes)
-    ax.text(0.5, 1.02, subtitle, fontsize=12, ha='center', va='bottom', transform=ax.transAxes)
+    # ax.text(0.5, 1.05, title, fontsize=17, ha='center', va='bottom', transform=ax.transAxes)
+    # ax.text(0.5, 1.02, subtitle, fontsize=12, ha='center', va='bottom', transform=ax.transAxes)
+    ax.set_title(f"{title}\n{subtitle}", fontsize=14, pad=20)
 
     for body_name, lmn in marked_bodies_lmn.items():
         ax.plot([lmn[0]], [lmn[1]], marker='x', color='black', mew=0.5)
@@ -769,7 +770,6 @@ def make_xst_plots(xst_data: np.ndarray,
     for body_name, body_coord in marked_bodies.items():
         print(body_name, body_coord.separation(zenith), body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
         if body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt > 0:
-            print("DentroOOOOO", body_name, body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
             marked_bodies_lmn[body_name] = skycoord_to_lmn(marked_bodies[body_name], zenith)
 
     if subtract is not None:
@@ -779,6 +779,12 @@ def make_xst_plots(xst_data: np.ndarray,
 
     marked_bodies_lmn_only3 = {k: v for (k, v) in marked_bodies_lmn.items() if k in ('Cas A', 'Cyg A', 'Sun')}
 
+    altaz_frame = AltAz(location=station_earthlocation, obstime=obstime_astropy)
+    cas_a_altaz = marked_bodies['Cas A'].transform_to(altaz_frame)
+
+    cas_a_el = cas_a_altaz.alt.deg
+    cas_a_az = cas_a_altaz.az.deg
+
     # Plot the resulting sky image
     sky_fig = plt.figure(figsize=(10, 10))
 
@@ -786,8 +792,11 @@ def make_xst_plots(xst_data: np.ndarray,
         # Tendency to oversubtract, we don't want to see that
         sky_vmin = np.quantile(sky_img, 0.05)
 
-    make_sky_plot(sky_img, marked_bodies_lmn_only3, title=f"Sky image for {station_name}",
-                  subtitle=f"SB {subband} ({freq / 1e6:.1f} MHz), {str(obstime)[:16]}", fig=sky_fig,
+    make_sky_plot(sky_img, marked_bodies_lmn, title=f"Sky image for {station_name}",
+                  subtitle=(f"SB {subband} ({freq / 1e6:.1f} MHz), {str(obstime)[:16]}\n"
+                    f"Cas A elevation: {cas_a_el:.2f}°"
+                    f"Cas A az: {cas_a_az:.2f}°"), 
+                  fig=sky_fig,
                   vmin=sky_vmin, vmax=sky_vmax)
 
     sky_fig.savefig(os.path.join(outputpath, f'{fname}_sky_calibrated.png'), bbox_inches='tight', dpi=200)
@@ -834,8 +843,8 @@ def make_xst_plots(xst_data: np.ndarray,
     maxpixel_lon, maxpixel_lat, _ = lofargeotiff.pqr_to_longlatheight([maxpixel_p, maxpixel_q], station_name)
 
     # Show location of maximum
-    print(f"Maximum at {maxpixel_x:.0f}m east, {maxpixel_y:.0f}m north of station center " +
-          f"(lat/long {maxpixel_lat:.5f}, {maxpixel_lon:.5f})")
+    # print(f"Maximum at {maxpixel_x:.0f}m east, {maxpixel_y:.0f}m north of station center " +
+    #       f"(lat/long {maxpixel_lat:.5f}, {maxpixel_lon:.5f})")
 
     tags = {"generated_with": f"lofarimaging v{__version__}",
             "subband": subband,

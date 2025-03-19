@@ -3,6 +3,7 @@ envLofar/
 sorted_subbands/
 videoResults/
 .vscode/
+.movies/
 
 results/*
 CalTables/*
