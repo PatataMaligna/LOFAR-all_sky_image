@@ -162,10 +162,16 @@ def find_caltable(field_name: str, rcu_mode: Union[str, int], caltable_dir='calt
 
     if os.path.exists(os.path.join(caltable_dir, filename)):
         # All caltables in one directory
-        return os.path.join(caltable_dir, filename)
+        # return os.path.normpath(os.path.join(caltable_dir, filename))
+        ###TO pass the test as windows user
+        path = os.path.normpath(os.path.join(caltable_dir, filename))
+        return path.replace("\\", "/") 
     elif os.path.exists(os.path.join(caltable_dir, station, filename)):
         # Caltables in a directory per station
-        return os.path.join(caltable_dir, station, filename)
+        # return os.path.normpath(os.path.join(caltable_dir, station, filename))
+        ###TO pass the test as windows user
+        path = os.path.normpath(os.path.join(caltable_dir, station, filename))
+        return path.replace("\\", "/") 
     else:
         return None
 
@@ -315,7 +321,7 @@ def get_station_pqr(station_name: str, rcu_mode: Union[str, int], db):
         >>> pqr.shape
         (96, 3)
         >>> pqr[0, 0]
-        1.7434713
+        np.float32(1.7434713)
 
         >>> pqr = get_station_pqr("LV614", "5", db)
         >>> pqr.shape
@@ -722,7 +728,7 @@ def make_xst_plots(xst_data: np.ndarray,
     zenith = AltAz(az=0 * u.deg, alt=90 * u.deg, obstime=obstime_astropy,
                    location=station_earthlocation).transform_to(gcrs_instance)
     
-    print(float(config['Cas A']['RA']) * u.deg, config['Cas A']['RA'])
+    # print(float(config['Cas A']['RA']) * u.deg, config['Cas A']['RA'])
     # Determine positions of potential sources of strong emission
     marked_bodies = {
         'Cas A': SkyCoord(ra=float(config['Cas A']['RA']) * u.deg, dec=float(config['Cas A']['DEC']) * u.deg),
@@ -768,7 +774,7 @@ def make_xst_plots(xst_data: np.ndarray,
 
     marked_bodies_lmn = {}
     for body_name, body_coord in marked_bodies.items():
-        print(body_name, body_coord.separation(zenith), body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
+        # print(body_name, body_coord.separation(zenith), body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
         if body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt > 0:
             marked_bodies_lmn[body_name] = skycoord_to_lmn(marked_bodies[body_name], zenith)
 
@@ -843,8 +849,8 @@ def make_xst_plots(xst_data: np.ndarray,
     maxpixel_lon, maxpixel_lat, _ = lofargeotiff.pqr_to_longlatheight([maxpixel_p, maxpixel_q], station_name)
 
     # Show location of maximum
-    # print(f"Maximum at {maxpixel_x:.0f}m east, {maxpixel_y:.0f}m north of station center " +
-    #       f"(lat/long {maxpixel_lat:.5f}, {maxpixel_lon:.5f})")
+    print(f"Maximum at {maxpixel_x:.0f}m east, {maxpixel_y:.0f}m north of station center " +
+          f"(lat/long {maxpixel_lat:.5f}, {maxpixel_lon:.5f})")
 
     tags = {"generated_with": f"lofarimaging v{__version__}",
             "subband": subband,
