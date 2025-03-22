@@ -528,9 +528,21 @@ def make_sky_plot(image: np.ndarray, marked_bodies_lmn: Dict[str, Tuple[float, f
 
     # ax.text(0.5, 1.05, title, fontsize=17, ha='center', va='bottom', transform=ax.transAxes)
     # ax.text(0.5, 1.02, subtitle, fontsize=12, ha='center', va='bottom', transform=ax.transAxes)
-    ax.set_title(f"{title}\n{subtitle}", fontsize=14, pad=20)
+    ax.set_title(f"{title}", fontsize=14, pad=200)
 
-    for body_name, lmn in marked_bodies_lmn.items():
+    # Ajustamos la posición con transform=ax.transAxes
+    ax.text(
+        0.5,       # x en coordenadas del eje (0 a 1)
+        1.02,      # un poco más arriba del 1.0 (límite del eje)
+        subtitle,
+        transform=ax.transAxes,
+        ha='center',
+        va='bottom',
+        fontsize=12
+    )
+
+    for body_name, data in marked_bodies_lmn.items():
+        lmn = data['lmn']
         ax.plot([lmn[0]], [lmn[1]], marker='x', color='black', mew=0.5)
         ax.annotate(body_name, (lmn[0], lmn[1]))
 
@@ -539,6 +551,8 @@ def make_sky_plot(image: np.ndarray, marked_bodies_lmn: Dict[str, Tuple[float, f
     ax.text(-0.9, 0, 'W', horizontalalignment='center', verticalalignment='center', color='w', fontsize=17)
     ax.text(0, 0.9, 'N', horizontalalignment='center', verticalalignment='center', color='w', fontsize=17)
     ax.text(0, -0.9, 'S', horizontalalignment='center', verticalalignment='center', color='w', fontsize=17)
+
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
 
     return fig
 
@@ -741,6 +755,7 @@ def make_xst_plots(xst_data: np.ndarray,
         'Moon': get_body('moon', time=obstime_astropy),
         'Sun': get_sun(time=obstime_astropy).transform_to(gcrs_instance),
         '3C196': SkyCoord(ra=float(config['3C196']['RA']) * u.deg, dec=float(config['3C196']['DEC']) * u.deg),
+        # SkyCoord("23 23 26.0 +58 48 41", unit=(u.hourangle, u.deg))
         # 'J0133-3629': [1.0440, -0.662, -0.225],
         # '3C48': [1.3253, -0.7553, -0.1914, 0.0498],
         # 'For A': [2.218, -0.661],
@@ -775,8 +790,13 @@ def make_xst_plots(xst_data: np.ndarray,
     marked_bodies_lmn = {}
     for body_name, body_coord in marked_bodies.items():
         # print(body_name, body_coord.separation(zenith), body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt)
-        if body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy)).alt > 0:
-            marked_bodies_lmn[body_name] = skycoord_to_lmn(marked_bodies[body_name], zenith)
+        altaz = body_coord.transform_to(AltAz(location=station_earthlocation, obstime=obstime_astropy))
+        if altaz.alt > 0:
+            marked_bodies_lmn[body_name] = {
+                'lmn' : skycoord_to_lmn(marked_bodies[body_name], zenith),
+                'elevation': altaz.alt.deg,
+                'azimuth': altaz.az.deg
+            }
 
     if subtract is not None:
         visibilities_stokes_i = subtract_sources(visibilities_stokes_i, baselines, freq, marked_bodies_lmn, subtract)
@@ -785,11 +805,11 @@ def make_xst_plots(xst_data: np.ndarray,
 
     marked_bodies_lmn_only3 = {k: v for (k, v) in marked_bodies_lmn.items() if k in ('Cas A', 'Cyg A', 'Sun')}
 
-    altaz_frame = AltAz(location=station_earthlocation, obstime=obstime_astropy)
-    cas_a_altaz = marked_bodies['Cas A'].transform_to(altaz_frame)
+    # altaz_frame = AltAz(location=station_earthlocation, obstime=obstime_astropy)
+    # cas_a_altaz = marked_bodies['Cas A'].transform_to(altaz_frame)
 
-    cas_a_el = cas_a_altaz.alt.deg
-    cas_a_az = cas_a_altaz.az.deg
+    # cas_a_el = cas_a_altaz.alt.deg
+    # cas_a_az = cas_a_altaz.az.deg
 
     # Plot the resulting sky image
     sky_fig = plt.figure(figsize=(10, 10))
@@ -798,10 +818,15 @@ def make_xst_plots(xst_data: np.ndarray,
         # Tendency to oversubtract, we don't want to see that
         sky_vmin = np.quantile(sky_img, 0.05)
 
+    bodies_info = "\n".join(
+        [f"{name}: Elevation {data['elevation']:.2f}°, Azimuth {data['azimuth']:.2f}°"
+        for name, data in marked_bodies_lmn.items()]
+    )
+
+    subtitle_text = (f"SB {subband} ({freq / 1e6:.1f} MHz), {str(obstime)[:16]}\n" + bodies_info)
+
     make_sky_plot(sky_img, marked_bodies_lmn, title=f"Sky image for {station_name}",
-                  subtitle=(f"SB {subband} ({freq / 1e6:.1f} MHz), {str(obstime)[:16]}\n"
-                    f"Cas A elevation: {cas_a_el:.2f}°"
-                    f"Cas A az: {cas_a_az:.2f}°"), 
+                  subtitle=subtitle_text,
                   fig=sky_fig,
                   vmin=sky_vmin, vmax=sky_vmax)
 
@@ -879,6 +904,7 @@ def make_sky_movie(moviefilename: str, h5file: h5py.File, obsnums: List[str], vm
     Make movie of a list of observations
     """
     fig = plt.figure(figsize=(10,10))
+
     for obsnum in tqdm.tqdm(obsnums):
         obs_h5 = h5file[obsnum]
         skydata_h5 = obs_h5["sky_img"]
@@ -886,12 +912,32 @@ def make_sky_movie(moviefilename: str, h5file: h5py.File, obsnums: List[str], vm
         freq = obs_h5.attrs["frequency"]
         station_name = obs_h5.attrs["station_name"]
         subband = obs_h5.attrs["subband"]
-        marked_bodies_lmn = dict(zip(obs_h5.attrs["source_names"], obs_h5.attrs["source_lmn"]))
-        if marked_bodies is not None:
-            marked_bodies_lmn = {k: v for k, v in marked_bodies_lmn.items() if k in marked_bodies}
+        marked_bodies_lmn = {
+            name: {
+                'lmn': lmn,
+                'elevation': elevation,
+                'azimuth': azimuth
+            }
+            for name, lmn, elevation, azimuth in zip(
+                obs_h5.attrs["source_names"], 
+                obs_h5.attrs["source_lmn"], 
+                obs_h5.attrs["source_elevations"], 
+                obs_h5.attrs["source_azimuths"]
+            )
+        }
+
+        bodies_info = "\n".join(
+            [f"{name}: Elevation {data['elevation']:.2f}°, Azimuth {data['azimuth']:.2f}°"
+            for name, data in marked_bodies_lmn.items()]
+        )
+
+        subtitle_text = (f"SB {subband} ({freq / 1e6:.1f} MHz), {str(obstime)[:16]}\n" + bodies_info)
+        
+        # if marked_bodies is not None:
+        #     marked_bodies_lmn = {k: v for k, v in marked_bodies_lmn.items() if k in marked_bodies}
         make_sky_plot(skydata_h5[:, :], marked_bodies_lmn,
                       title=f"Sky image for {station_name}",
-                      subtitle=f"SB {subband} ({freq / 1e6:.1f} MHz), {str(obstime)[:16]}",
+                      subtitle=subtitle_text,
                       animated=True, fig=fig, label=obsnum, vmin=vmin, vmax=vmax)
 
     # Thanks to Maaijke Mevius for making this animation work!
